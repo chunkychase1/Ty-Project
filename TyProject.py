@@ -38,8 +38,12 @@ if clear_chat:
     st.session_state.run_status = []
     st.session_state.thread_id = None
 
-query = st.text_input("Enter your query:", "")
-if st.button("Submit"):
+# Use session_state to manage the input text
+if "query" not in st.session_state:
+    st.session_state.query = ""
+
+def submit_query():
+    query = st.session_state.query
     if query and client:
         # Enter your Assistant ID here.
         ASSISTANT_ID = assistants[selected_assistant]
@@ -100,10 +104,21 @@ if st.button("Submit"):
         # Add the user query and assistant response to the chat
         st.session_state.messages.append(f"User: {query}")
         st.session_state.messages.append(f"Assistant ({selected_assistant}): {assistant_response}")
+        st.session_state.messages.append("---")  # Add a separator after each pair
 
-# Display chat
+        # Clear the input field
+        st.session_state.query = ""
+
+query = st.text_input("Enter your query:", key="query")
+if st.button("Submit", on_click=submit_query):
+    pass
+
+# Display chat with separators
 for message in st.session_state.messages:
-    st.write(message)
+    if message == "---":
+        st.markdown("---")
+    else:
+        st.write(message)
 
 # Download as PDF
 def create_pdf(messages):
@@ -112,8 +127,11 @@ def create_pdf(messages):
     pdf.set_font("Arial", size=12)
     for message in messages:
         # Replace non-ASCII characters
-        message = message.encode('ascii', 'replace').decode()
-        pdf.multi_cell(0, 10, message)
+        if message == "---":
+            pdf.cell(0, 10, "-" * 80, ln=True)  # Add a horizontal line in the PDF
+        else:
+            message = message.encode('ascii', 'replace').decode()
+            pdf.multi_cell(0, 10, message)
     return pdf
 
 # Move the Download as PDF button above the run status updates
